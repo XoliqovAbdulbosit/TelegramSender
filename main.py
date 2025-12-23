@@ -1,54 +1,44 @@
-import os
 import requests
+import json
+import re
 
-lst = []
-TOKEN = ""
-BASE_URL = f"https://api.telegram.org/bot{TOKEN}"
-current_directory = os.getcwd()
+BOT_TOKEN = ""
+FIRST_USER_ID = 998457944
+MESSAGE_TEXT = """"""
 
-
-def send_photo(chat_id, photo, text):
-    url = f"{BASE_URL}/sendPhoto"
-    img = os.path.join(current_directory, photo)
-    with open(img, "rb") as image_file:
-        files = {"photo": image_file}
-        data = {"chat_id": chat_id, "caption": text, "parse_mode": "Markdown"}
-        requests.post(url, files=files, data=data)
-
-
-def send_text(chat_id, text):
-    url = f"{BASE_URL}/sendMessage"
-    data = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
-    requests.post(url, json=data)
-
-
-def send_video_note(chat_id, video_note):
-    url = f"{BASE_URL}/sendVideoNote"
-    video = os.path.join(current_directory, video_note)
-    with open(video, "rb") as video_file:
-        files = {"video_note": video_file}
-        data = {"chat_id": chat_id}
-        requests.post(url, files=files, data=data)
-
-
-def forward(chat_id):
-    url = f"{BASE_URL}/forwardMessage"
-    from_chat_id = 0
-    message_id = 0
-    data = {"chat_id": chat_id, "from_chat_id": from_chat_id, "message_id": message_id}
-    requests.post(url, data=data)
-
-
-data = ""
-print(len(lst))
-errors = []
-cnt = 0
-for id in lst:
+def load_ids(filename="ids.json"):
     try:
-        forward(id)
-        print(cnt, id)
-    except Exception as e:
-        print("Error:", e, cnt, id)
-        errors.append(id)
-    cnt += 1
-print("Errors:", errors)
+        with open(filename, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error loading {filename}: {e}")
+        return []
+
+def send_message(chat_id, text):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML"
+    }
+    response = requests.post(url, data=payload)
+    if response.status_code == 200:
+        print(f"Sent to {chat_id}")
+    else:
+        print(f"Failed to send to {chat_id}: {response.text}")
+
+def main():
+    other_user_ids = load_ids()
+
+    send_message(FIRST_USER_ID, MESSAGE_TEXT)
+
+    confirm = input("Do you confirm sent message (yes/no): ").strip().lower()
+    if confirm != "yes":
+        print("Message sending aborted.")
+        return
+
+    for user_id in other_user_ids:
+        send_message(user_id, MESSAGE_TEXT)
+
+if __name__ == "__main__":
+    main()
